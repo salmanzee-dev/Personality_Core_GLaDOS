@@ -285,12 +285,6 @@ class MCPManager:
             # Unified path: always build our own auth-bearing client. For an
             # empty header set this is behaviourally identical to the SDK's
             # default (create_mcp_http_client(headers={}) == its no-arg client).
-            #
-            # REMOVABLE NOTE: if you'd rather let the SDK own the no-auth
-            # client, swap the line below for the branch and delete this note:
-            #     if headers:
-            #         return _http_transport(str(config.url), headers)
-            #     return streamable_http_client(str(config.url))
             return _http_transport(str(config.url), headers)
         if config.transport == "sse":
             return sse_client(str(config.url), headers=headers)

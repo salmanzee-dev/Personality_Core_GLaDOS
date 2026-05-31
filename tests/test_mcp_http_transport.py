@@ -104,6 +104,14 @@ def test_streamable_http_client_api_uses_http_client_not_headers():
     # Pin the SDK contract the fix depends on: the canonical client takes a
     # pre-built http_client and has no headers parameter (passing headers= is
     # exactly the original bug). create_mcp_http_client is where headers go.
+    #
+    # importorskip("mcp") only proves the top-level package imports, not that
+    # mcp.client.streamable_http exports these symbols. On older SDKs the
+    # try/except in manager.py nulls them, so guard before inspect.signature
+    # (which would raise TypeError on None instead of skipping).
+    if manager_mod.streamable_http_client is None or manager_mod.create_mcp_http_client is None:
+        pytest.skip("installed mcp SDK does not expose streamable_http_client / create_mcp_http_client")
+
     params = inspect.signature(manager_mod.streamable_http_client).parameters
     assert "http_client" in params
     assert "headers" not in params
