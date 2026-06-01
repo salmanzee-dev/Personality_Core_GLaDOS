@@ -173,6 +173,22 @@ class SoundDeviceAudioIO:
         if sample_rate is None:
             sample_rate = self._pending_sample_rate
 
+        if sample_rate <= 0:
+            logger.warning(f"Invalid sample rate {sample_rate}; skipping playback")
+            if self._pending_audio is audio_data:
+                self._pending_audio = None
+                self._is_playing = False
+            return False, 100
+
+        # Derive playback length from the actual buffer so a wrong caller-supplied
+        # total_samples can't break the timeout or percentage math.
+        effective_total = len(audio_data)
+        if effective_total <= 0:
+            if self._pending_audio is audio_data:
+                self._pending_audio = None
+                self._is_playing = False
+            return False, 100
+
         position = 0
         interrupted = False
         completion_event = threading.Event()
@@ -190,7 +206,7 @@ class SoundDeviceAudioIO:
                 completion_event.set()
                 raise sd.CallbackStop
 
-            remaining = len(audio_data) - position
+            remaining = effective_total - position
             chunk_size = min(frames, remaining)
 
             if chunk_size > 0:
@@ -201,13 +217,13 @@ class SoundDeviceAudioIO:
             else:
                 outdata.fill(0)
 
-            if position >= len(audio_data):
+            if position >= effective_total:
                 completion_event.set()
                 raise sd.CallbackStop
 
         try:
-            logger.debug(f"Using sample rate: {sample_rate} Hz, total samples: {total_samples}")
-            max_timeout = total_samples / sample_rate + 1
+            logger.debug(f"Using sample rate: {sample_rate} Hz, total samples: {effective_total}")
+            max_timeout = effective_total / sample_rate + 1
             with sd.OutputStream(
                 callback=stream_callback,
                 samplerate=sample_rate,
@@ -223,9 +239,13 @@ class SoundDeviceAudioIO:
         except (sd.PortAudioError, RuntimeError):
             logger.debug("Audio stream already closed or invalid")
 
-        self._pending_audio = None
-        self._is_playing = False
-        percentage_played = min(int(position / total_samples * 100), 100)
+        # Identity-checked teardown: only clear shared state if it still belongs to this
+        # session, otherwise a new start_speaking() that ran concurrently could be wiped out.
+        if self._pending_audio is audio_data:
+            self._pending_audio = None
+        if self._stop_event is stop_event:
+            self._is_playing = False
+        percentage_played = min(int(position / effective_total * 100), 100)
         return interrupted, percentage_played
 
     def check_if_speaking(self) -> bool:
