@@ -354,13 +354,13 @@ api_key: ""  # if needed
 
 You can use any OpenAI-compatible cloud API. Example configs are provided in `configs/`:
 
-**MiniMax** — high-performance models with 204K context and built-in reasoning:
+**MiniMax** — high-performance models with 512K context and built-in reasoning:
 ```yaml
-llm_model: "MiniMax-M2.7"
+llm_model: "MiniMax-M3"
 completion_url: "https://api.minimax.io/v1/chat/completions"
 api_key: "your-minimax-api-key"
 ```
-See `configs/minimax_config.yaml` for a complete configuration. Models: `MiniMax-M2.7` (latest flagship, default), `MiniMax-M2.7-highspeed` (low-latency), `MiniMax-M2.5`, `MiniMax-M2.5-highspeed`.
+See `configs/minimax_config.yaml` for a complete configuration. Models: `MiniMax-M3` (latest flagship, default), `MiniMax-M2.7` (previous generation), `MiniMax-M2.7-highspeed` (low-latency).
 
 **OpenRouter** — access multiple models through one API:
 ```yaml
